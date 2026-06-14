@@ -1,76 +1,80 @@
-package open-elevation
+package openelevation
 
-import (
-	"testing"
-
-	"github.com/tamnd/any-cli/kit"
-)
-
-// These tests are offline: they exercise the URI driver's pure string functions
-// and the host wiring (mint, body, resolve), which need no network. The client's
-// HTTP behaviour is covered in open-elevation_test.go.
+import "testing"
 
 func TestDomainInfo(t *testing.T) {
 	info := Domain{}.Info()
-	if info.Scheme != "open-elevation" {
-		t.Errorf("Scheme = %q, want open-elevation", info.Scheme)
+	if info.Scheme != "openelevation" {
+		t.Errorf("Scheme = %q, want openelevation", info.Scheme)
 	}
 	if len(info.Hosts) == 0 || info.Hosts[0] != Host {
 		t.Errorf("Hosts = %v, want [%s]", info.Hosts, Host)
 	}
-	if info.Identity.Binary != "open-elevation" {
-		t.Errorf("Identity.Binary = %q, want open-elevation", info.Identity.Binary)
+	if info.Identity.Binary != "elevation" {
+		t.Errorf("Identity.Binary = %q, want elevation", info.Identity.Binary)
 	}
 }
 
 func TestClassify(t *testing.T) {
-	cases := []struct{ in, typ, id string }{
-		{"wiki/Go", "page", "wiki/Go"},
-		{"/about/", "page", "about"},
-		{"https://" + Host + "/team/contact", "page", "team/contact"},
+	typ, id, err := Domain{}.Classify("41.161758,-8.583933")
+	if err != nil {
+		t.Fatalf("Classify error: %v", err)
 	}
-	for _, tc := range cases {
-		typ, id, err := Domain{}.Classify(tc.in)
-		if err != nil || typ != tc.typ || id != tc.id {
-			t.Errorf("Classify(%q) = (%q, %q, %v), want (%q, %q, nil)",
-				tc.in, typ, id, err, tc.typ, tc.id)
-		}
+	if typ != "point" {
+		t.Errorf("typ = %q, want point", typ)
+	}
+	if id != "41.161758,-8.583933" {
+		t.Errorf("id = %q", id)
+	}
+}
+
+func TestClassifyEmpty(t *testing.T) {
+	_, _, err := Domain{}.Classify("")
+	if err == nil {
+		t.Error("expected error for empty input")
+	}
+}
+
+func TestClassifyInvalid(t *testing.T) {
+	_, _, err := Domain{}.Classify("notacoord")
+	if err == nil {
+		t.Error("expected error for non-coordinate input")
 	}
 }
 
 func TestLocate(t *testing.T) {
-	got, err := Domain{}.Locate("page", "wiki/Go")
-	want := "https://" + Host + "/wiki/Go"
-	if err != nil || got != want {
-		t.Errorf("Locate = (%q, %v), want (%q, nil)", got, err, want)
+	got, err := Domain{}.Locate("point", "41.161758,-8.583933")
+	if err != nil {
+		t.Fatalf("Locate error: %v", err)
+	}
+	if got == "" {
+		t.Error("Locate returned empty URL")
 	}
 }
 
-// TestHostWiring mounts the driver in a kit Host (the runtime ant drives) and
-// checks the round trip: a record mints to its URI, its body is readable, and a
-// bare id resolves back to the same URI. The init in domain.go registers the
-// domain, so kit.Open finds it.
-func TestHostWiring(t *testing.T) {
-	h, err := kit.Open()
-	if err != nil {
-		t.Fatal(err)
+func TestLocateUnknownType(t *testing.T) {
+	_, err := Domain{}.Locate("unknown", "foo")
+	if err == nil {
+		t.Error("expected error for unknown resource type")
 	}
+}
 
-	p := &Page{ID: "wiki/Go", URL: "https://" + Host + "/wiki/Go", Title: "Go", Body: "Go is a language."}
-	u, err := h.Mint(p)
-	if err != nil {
-		t.Fatalf("Mint: %v", err)
+func TestParseCoords(t *testing.T) {
+	cases := []struct {
+		in   string
+		want [][2]float64
+	}{
+		{"41.161758,-8.583933", [][2]float64{{41.161758, -8.583933}}},
+		{"10,10 -20,30", [][2]float64{{10, 10}, {-20, 30}}},
 	}
-	if want := "open-elevation://page/wiki/Go"; u.String() != want {
-		t.Errorf("Mint = %q, want %q", u.String(), want)
-	}
-
-	if body, ok := h.Body(p); !ok || body == "" {
-		t.Errorf("Body = (%q, %v), want non-empty", body, ok)
-	}
-
-	got, err := h.ResolveOn("open-elevation", "about")
-	if err != nil || got.String() != "open-elevation://page/about" {
-		t.Errorf("ResolveOn = (%q, %v), want open-elevation://page/about", got.String(), err)
+	for _, c := range cases {
+		got, err := parseCoords(c.in)
+		if err != nil {
+			t.Errorf("parseCoords(%q) error: %v", c.in, err)
+			continue
+		}
+		if len(got) != len(c.want) {
+			t.Errorf("parseCoords(%q) len = %d, want %d", c.in, len(got), len(c.want))
+		}
 	}
 }

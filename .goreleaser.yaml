@@ -17,7 +17,7 @@ before:
 
 builds:
   - id: open-elevation
-    binary: open-elevation
+    binary: elevation
     main: ./cmd/open-elevation
     env:
       - CGO_ENABLED=0

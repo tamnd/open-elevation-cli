@@ -1,10 +1,10 @@
-// Package cli assembles the open-elevation command tree from the open-elevation
+// Package cli assembles the elevation command tree from the open-elevation
 // domain on top of the any-cli/kit framework.
 package cli
 
 import (
 	"github.com/tamnd/any-cli/kit"
-	"github.com/tamnd/open-elevation-cli/open-elevation"
+	openelevation "github.com/tamnd/open-elevation-cli/open-elevation"
 )
 
 // Build metadata, set via -ldflags at release time.
@@ -24,11 +24,11 @@ var (
 // appears here automatically. Reach for app.AddCommand only for a verb that does
 // not fit the emit-records shape, the way version does below.
 func NewApp() *kit.App {
-	id := open-elevation.Domain{}.Info().Identity
+	id := openelevation.Domain{}.Info().Identity
 	id.Version = Version
 
 	app := kit.New(id)
-	(open-elevation.Domain{}).Register(app)
+	(openelevation.Domain{}).Register(app)
 	app.AddCommand(newVersionCmd())
 	return app
 }
