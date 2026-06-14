@@ -1,0 +1,10 @@
+title       = "open-elevation"
+baseURL     = "https://open-elevation-cli.tamnd.com/"
+description = "Elevation data for any GPS coordinate"
+contentDir  = "content"
+outputDir   = "public"
+theme       = "tago-doks"
+syntaxHighlight = "true"
+
+[params]
+github = "https://github.com/tamnd/open-elevation-cli"
